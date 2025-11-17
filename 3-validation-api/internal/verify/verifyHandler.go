@@ -45,14 +45,14 @@ func (h *verifyHandler) Send() http.HandlerFunc {
 		h.Code = RandomDigits(6)
 		verifyURL := "http://localhost:8080/verify/" + h.Code
 		e := &email.Email{
-			To:          []string{"eduard_ai@mail.ru"},
-			From:        h.Config.Address,
+			To:          []string{h.Config.Address},
+			From:        h.Config.Email,
 			Subject:     "Some subject",
 			Text:        []byte(h.Code),
 			HTML:        []byte(fmt.Sprintf(`<a href="%s">Нажми сюда чтобы подтвердить</a>`, verifyURL)),
 			Attachments: []*email.Attachment{},
 		}
-		err := e.Send("smtp.mail.ru:587", smtp.PlainAuth("", h.Config.Address, h.Config.Password, h.Config.Email))
+		err := e.Send("smtp.mail.ru:587", smtp.PlainAuth("", h.Config.Email, h.Config.Password, "smtp.mail.ru"))
 		if err != nil {
 			http.Error(w, "Не удалось отправить письмо", http.StatusInternalServerError)
 			log.Print("Email doesn't sent", err)
