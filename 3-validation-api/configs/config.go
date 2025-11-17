@@ -7,19 +7,9 @@ import (
 )
 
 type Config struct {
-	Email    Email
-	Password Password
-	Address  Address
-}
-type Email struct {
-	Email string
-}
-type Password struct {
-	Password string
-}
-
-type Address struct {
-	Address string
+	Email    string `env:"EMAIL"`
+	Password string `env:"PASSWORD"`
+	Address  string `env:"ADDRESS"`
 }
 
 func LoadConfig() *Config {
@@ -28,15 +18,9 @@ func LoadConfig() *Config {
 		return nil
 	}
 	return &Config{
-		Email: Email{
-			Email: os.Getenv("EMAIL"),
-		},
-		Password: Password{
-			Password: os.Getenv("PASSWORD"),
-		},
-		Address: Address{
-			Address: os.Getenv("ADDRESS"),
-		},
+		Email:    os.Getenv("EMAIL"),
+		Password: os.Getenv("PASSWORD"),
+		Address:  os.Getenv("ADDRESS"),
 	}
 
 }
