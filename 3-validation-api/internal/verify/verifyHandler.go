@@ -2,19 +2,17 @@ package verify
 
 import (
 	"PurpleHW/3-validation-api/configs"
-	"crypto/rand"
+	"PurpleHW/3-validation-api/internal/pkg/request"
+	"PurpleHW/3-validation-api/internal/pkg/resp"
+	"PurpleHW/3-validation-api/internal/verify/payload"
 	"fmt"
 	"log"
-	"math/big"
 	"net/http"
-	"net/smtp"
-
-	"github.com/jordan-wright/email"
 )
 
 type verifyHandler struct {
 	*configs.Config
-	Code string
+	Codes map[string]string
 }
 type VerifyHandlerDeps struct {
 	*configs.Config
@@ -23,65 +21,53 @@ type VerifyHandlerDeps struct {
 func NewVerifyHandler(router *http.ServeMux, deps VerifyHandlerDeps) {
 	handler := &verifyHandler{
 		Config: deps.Config,
-		Code:   "",
+		Codes:  make(map[string]string),
 	}
 	router.HandleFunc("POST /send", handler.Send())
 	router.HandleFunc("GET /verify/{hash}", handler.Verify())
 }
 
-func RandomDigits(n int) string {
-	digits := "0123456789"
-	result := make([]byte, n)
-
-	for i := 0; i < n; i++ {
-		num, _ := rand.Int(rand.Reader, big.NewInt(int64(len(digits))))
-		result[i] = digits[num.Int64()]
-	}
-	return string(result)
-}
 func (h *verifyHandler) Send() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("Handler Send reached")
-		h.Code = RandomDigits(6)
-		verifyURL := "http://localhost:8080/verify/" + h.Code
-		e := &email.Email{
-			To:          []string{h.Config.Address},
-			From:        h.Config.Email,
-			Subject:     "Some subject",
-			Text:        []byte(h.Code),
-			HTML:        []byte(fmt.Sprintf(`<a href="%s">Нажми сюда чтобы подтвердить</a>`, verifyURL)),
-			Attachments: []*email.Attachment{},
-		}
-		err := e.Send("smtp.mail.ru:587", smtp.PlainAuth("", h.Config.Email, h.Config.Password, "smtp.mail.ru"))
+		body, err := request.HandleBody[payload.SendRequest](w, r)
 		if err != nil {
-			http.Error(w, "Не удалось отправить письмо", http.StatusInternalServerError)
-			log.Print("Email doesn't sent", err)
+			log.Printf("Error HandleBody: %v", err)
 			return
 		}
-
-		w.Header().Set("Content-Type", "text; charset=utf-8")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("ok"))
-		fmt.Println("Email sent, code: " + h.Code)
+		recipient := body.Email
+		code, err := h.SendCode(recipient)
+		if err != nil {
+			log.Printf("failed to send verification email to %s: %v", recipient, err)
+			http.Error(w, "Internal server error while sending email", http.StatusInternalServerError)
+			return
+		}
+		responseUser := payload.SendResponse{
+			Email: recipient,
+			Code:  code,
+		}
+		h.Codes[responseUser.Email] = responseUser.Code
+		resp.WriteJSON(w, responseUser, http.StatusOK)
+		fmt.Println("Email sent, code: " + code)
 	}
 }
 func (h *verifyHandler) Verify() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("Handler Verify reached")
-		hash := r.PathValue("hash")
-		fmt.Println("Hash: ", hash)
-		fmt.Println("Code: ", h.Code)
-		if hash != h.Code {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("Invalid verification code"))
-			log.Print("Invalid verification code")
+		body, err := request.HandleBody[payload.VerifyRequest](w, r)
+		if err != nil {
+			log.Printf("Error HandleBody: %v", err)
 			return
 		}
-		h.Code = ""
-		w.Header().Set("Content-Type", "text; charset=utf-8")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("You confirm email"))
-		fmt.Println("Email verified")
+		hash := r.PathValue("hash")
+		fmt.Println("Hash: ", hash)
+		fmt.Println("Code: ", h.Codes[body.Email])
+		if h.CheckCode(body.Email, hash) {
+			resp.WriteJSON(w, "You confirm email", http.StatusOK)
+			fmt.Println("Email verified")
+			return
+		}
+		fmt.Println("Code doesnt confirmed")
 
 	}
 }
