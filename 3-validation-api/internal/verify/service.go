@@ -22,7 +22,7 @@ func RandomDigits(n int) string {
 }
 func (h *verifyHandler) SendCode(recipient string) (string, error) {
 	code := RandomDigits(6)
-	verifyURL := "http://localhost:8080/verify/" + code
+	verifyURL := "http://localhost:8081/verify/" + code
 	e := &email.Email{
 		To:          []string{recipient},
 		From:        h.Config.Email,
