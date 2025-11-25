@@ -37,18 +37,19 @@ func (h *verifyHandler) SendCode(recipient string) (string, error) {
 	}
 	return code, nil
 }
-func (h *verifyHandler) CheckCode(email, clientCode string) bool {
-	storedCode, ok := h.Storage.EmailToCode[email]
+func (h *verifyHandler) CheckCode(clientCode string) bool {
+	h.Storage.Load()
+	clientEmail, ok := h.Storage.CodeToEmail[clientCode]
 	if !ok {
-		log.Println("No code for email: ", email)
+		log.Println("No code for email: ", clientEmail)
 		return false
 	}
-	if storedCode != clientCode {
-		log.Println("Invalid code for email: ", email)
+	if h.Storage.EmailToCode[clientEmail] != clientCode {
+		log.Println("Invalid code for email: ", clientEmail)
 		return false
 	}
-	delete(h.Storage.EmailToCode, email)
-	delete(h.Storage.CodeToEmail, storedCode)
+	delete(h.Storage.EmailToCode, clientEmail)
+	delete(h.Storage.CodeToEmail, clientCode)
 	h.Storage.Save()
 	return true
 }
