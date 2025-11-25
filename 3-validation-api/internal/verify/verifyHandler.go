@@ -19,8 +19,8 @@ type VerifyHandlerDeps struct {
 }
 
 func NewVerifyHandler(router *http.ServeMux, deps VerifyHandlerDeps) {
-	storage := NewStorage("/Users/aichepshev/code/PurpleHW/3-validation-api/internal/verify/storage.json")
-	storage.Load() // ← ЗАГРУЗИЛИ ОДИН РАЗ
+	storage := NewStorage(deps.StoragePath)
+	storage.Load() // ЗАГРУЗИЛИ ОДИН РАЗ
 
 	handler := &verifyHandler{
 		Config:  deps.Config,
@@ -48,9 +48,8 @@ func (h *verifyHandler) Send() http.HandlerFunc {
 		}
 		responseUser := payload.SendResponse{
 			Email: recipient,
-			Code:  code,
 		}
-		h.Storage.Set(responseUser.Email, responseUser.Code)
+		h.Storage.Set(responseUser.Email, code)
 		resp.WriteJSON(w, responseUser, http.StatusOK)
 		fmt.Println("Email sent, code: " + code)
 	}
