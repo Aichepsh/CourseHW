@@ -19,9 +19,10 @@ func LoadConfig() *Config {
 		return nil
 	}
 	return &Config{
-		Email:    os.Getenv("EMAIL"),
-		Password: os.Getenv("PASSWORD"),
-		Address:  os.Getenv("ADDRESS"),
+		Email:       os.Getenv("EMAIL"),
+		Password:    os.Getenv("PASSWORD"),
+		Address:     os.Getenv("ADDRESS"),
+		StoragePath: os.Getenv("STORAGE_PATH"),
 	}
 
 }
