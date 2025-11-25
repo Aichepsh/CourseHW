@@ -1,6 +1,7 @@
 package configs
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/joho/godotenv"
@@ -13,16 +14,18 @@ type Config struct {
 	StoragePath string `env:"STORAGE_PATH"`
 }
 
-func LoadConfig() *Config {
+func LoadConfig() (*Config, error) {
 	err := godotenv.Load(".env")
 	if err != nil {
-		return nil
+		return nil, fmt.Errorf("LoadConfig error: %w", err)
 	}
-	return &Config{
+
+	cfg := &Config{
 		Email:       os.Getenv("EMAIL"),
 		Password:    os.Getenv("PASSWORD"),
 		Address:     os.Getenv("ADDRESS"),
 		StoragePath: os.Getenv("STORAGE_PATH"),
 	}
 
+	return cfg, nil
 }
