@@ -5,9 +5,11 @@ import (
 	"PurpleHW/3-validation-api/internal/pkg/request"
 	"PurpleHW/3-validation-api/internal/pkg/resp"
 	"PurpleHW/3-validation-api/internal/verify/payload"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 )
 
 type verifyHandler struct {
@@ -46,9 +48,17 @@ func (h *verifyHandler) Send() http.HandlerFunc {
 			Email: recipient,
 			Code:  code,
 		}
-		h.Codes[responseUser.Email] = responseUser.Code
-		resp.WriteJSON(w, responseUser, http.StatusOK)
-		fmt.Println("Email sent, code: " + code)
+		dataJSON, err := json.MarshalIndent(responseUser, "", "  ")
+		if err != nil {
+			log.Fatal("Ошибка маршалинга:", err)
+		}
+		err = os.WriteFile("user.json", dataJSON, 0644)
+		if err != nil {
+			log.Fatal("Ошибка записи файла:", err)
+		}
+		//h.Codes[responseUser.Email] = responseUser.Code
+		//resp.WriteJSON(w, responseUser, http.StatusOK)
+		//fmt.Println("Email sent, code: " + code)
 	}
 }
 func (h *verifyHandler) Verify() http.HandlerFunc {
