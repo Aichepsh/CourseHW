@@ -38,7 +38,8 @@ func (h *verifyHandler) SendCode(recipient string) (string, error) {
 	return code, nil
 }
 func (h *verifyHandler) CheckCode(email, clientCode string) bool {
-	storedCode, ok := h.Codes[email]
+	storedCode, ok := h.Storage.EmailToCode[email]
+	fmt.Println(h.Storage.EmailToCode)
 	if !ok {
 		log.Println("No code for email: ", email)
 		return false
@@ -47,6 +48,6 @@ func (h *verifyHandler) CheckCode(email, clientCode string) bool {
 		log.Println("Invalid code for email: ", email)
 		return false
 	}
-	delete(h.Codes, email)
+	delete(h.Storage.EmailToCode, email)
 	return true
 }

@@ -12,17 +12,21 @@ import (
 
 type verifyHandler struct {
 	*configs.Config
-	Codes map[string]string
+	Storage *Storage
 }
 type VerifyHandlerDeps struct {
 	*configs.Config
 }
 
 func NewVerifyHandler(router *http.ServeMux, deps VerifyHandlerDeps) {
+	storage := NewStorage("/Users/aichepshev/code/PurpleHW/3-validation-api/internal/verify/storage.json")
+	storage.Load() // ← ЗАГРУЗИЛИ ОДИН РАЗ
+
 	handler := &verifyHandler{
-		Config: deps.Config,
-		Codes:  make(map[string]string),
+		Config:  deps.Config,
+		Storage: storage,
 	}
+
 	router.HandleFunc("POST /send", handler.Send())
 	router.HandleFunc("GET /verify/{hash}", handler.Verify())
 }
@@ -46,7 +50,7 @@ func (h *verifyHandler) Send() http.HandlerFunc {
 			Email: recipient,
 			Code:  code,
 		}
-		h.Codes[responseUser.Email] = responseUser.Code
+		h.Storage.Set(responseUser.Email, responseUser.Code)
 		resp.WriteJSON(w, responseUser, http.StatusOK)
 		fmt.Println("Email sent, code: " + code)
 	}
@@ -61,12 +65,12 @@ func (h *verifyHandler) Verify() http.HandlerFunc {
 		}
 		hash := r.PathValue("hash")
 		fmt.Println("Hash: ", hash)
-		fmt.Println("Code: ", h.Codes[body.Email])
 		if h.CheckCode(body.Email, hash) {
 			resp.WriteJSON(w, "You confirm email", http.StatusOK)
 			fmt.Println("Email verified")
 			return
 		}
+		http.Error(w, "Email not confirmed", http.StatusUnauthorized)
 		fmt.Println("Code doesnt confirmed")
 
 	}
