@@ -57,14 +57,14 @@ func (h *verifyHandler) Send() http.HandlerFunc {
 func (h *verifyHandler) Verify() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("Handler Verify reached")
-		body, err := request.HandleBody[payload.VerifyRequest](w, r)
+		_, err := request.HandleBody[payload.VerifyRequest](w, r)
 		if err != nil {
 			log.Printf("Error HandleBody: %v", err)
 			return
 		}
 		hash := r.PathValue("hash")
 		fmt.Println("Hash: ", hash)
-		if h.CheckCode(body.Email, hash) {
+		if h.CheckCode(hash) {
 			resp.WriteJSON(w, "You confirm email", http.StatusOK)
 			fmt.Println("Email verified")
 			return
