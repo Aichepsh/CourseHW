@@ -5,26 +5,28 @@ import (
 	"PurpleHW/3-validation-api/internal/pkg/request"
 	"PurpleHW/3-validation-api/internal/pkg/resp"
 	"PurpleHW/3-validation-api/internal/verify/payload"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 )
 
 type verifyHandler struct {
 	*configs.Config
-	Codes map[string]string
+	Storage *Storage
 }
 type VerifyHandlerDeps struct {
 	*configs.Config
 }
 
 func NewVerifyHandler(router *http.ServeMux, deps VerifyHandlerDeps) {
+	storage := NewStorage("/Users/aichepshev/code/PurpleHW/3-validation-api/internal/verify/storage.json")
+	storage.Load() // ← ЗАГРУЗИЛИ ОДИН РАЗ
+
 	handler := &verifyHandler{
-		Config: deps.Config,
-		Codes:  make(map[string]string),
+		Config:  deps.Config,
+		Storage: storage,
 	}
+
 	router.HandleFunc("POST /send", handler.Send())
 	router.HandleFunc("GET /verify/{hash}", handler.Verify())
 }
@@ -48,17 +50,9 @@ func (h *verifyHandler) Send() http.HandlerFunc {
 			Email: recipient,
 			Code:  code,
 		}
-		dataJSON, err := json.MarshalIndent(responseUser, "", "  ")
-		if err != nil {
-			log.Fatal("Ошибка маршалинга:", err)
-		}
-		err = os.WriteFile("user.json", dataJSON, 0644)
-		if err != nil {
-			log.Fatal("Ошибка записи файла:", err)
-		}
-		//h.Codes[responseUser.Email] = responseUser.Code
-		//resp.WriteJSON(w, responseUser, http.StatusOK)
-		//fmt.Println("Email sent, code: " + code)
+		h.Storage.Set(responseUser.Email, responseUser.Code)
+		resp.WriteJSON(w, responseUser, http.StatusOK)
+		fmt.Println("Email sent, code: " + code)
 	}
 }
 func (h *verifyHandler) Verify() http.HandlerFunc {
@@ -71,12 +65,12 @@ func (h *verifyHandler) Verify() http.HandlerFunc {
 		}
 		hash := r.PathValue("hash")
 		fmt.Println("Hash: ", hash)
-		fmt.Println("Code: ", h.Codes[body.Email])
 		if h.CheckCode(body.Email, hash) {
 			resp.WriteJSON(w, "You confirm email", http.StatusOK)
 			fmt.Println("Email verified")
 			return
 		}
+		http.Error(w, "Email not confirmed", http.StatusUnauthorized)
 		fmt.Println("Code doesnt confirmed")
 
 	}
