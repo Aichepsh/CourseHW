@@ -7,9 +7,10 @@ import (
 )
 
 type Config struct {
-	Email    string `env:"EMAIL"`
-	Password string `env:"PASSWORD"`
-	Address  string `env:"ADDRESS"`
+	Email       string `env:"EMAIL"`
+	Password    string `env:"PASSWORD"`
+	Address     string `env:"ADDRESS"`
+	StoragePath string `env:"STORAGE_PATH"`
 }
 
 func LoadConfig() *Config {
